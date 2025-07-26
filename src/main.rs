@@ -1,6 +1,7 @@
 use std::{fs::read_to_string};
+use log::{debug};
+use env_logger::Env;
 use clap::Parser;
-
 mod downloader;
 use downloader::*;
 
@@ -23,45 +24,55 @@ struct Args {
 
 #[tokio::main]
 async fn  main() {
-
+    env_logger::Builder::from_env(Env::default().default_filter_or("warn")).init();
     let args = Args::parse();
-
     if args.file.is_none() && args.id.is_none(){
-        println!("No ID nor File with IDs was provided :3");
-        return
+        panic!("No ID nor File with IDs was provided :3");
     }
 
     if let Some(path) = args.file {
+        debug!("File path: {path}");
         let file = read_to_string(path).unwrap();
         let lines = file.lines();
 
         let mut handles = tokio::task::JoinSet::new();
         for id in lines {
             let id = id.to_owned();
+            debug!("ID: {id}");
             let cookies = args.cookies.to_owned();
+            debug!("Cookies: {:?}", cookies);
             handles.spawn(async move { 
-                // sleep(Duration::from_millis(500));
+                debug!("Making DownloadRequest");
                 let download_request = DownloadRequest::check_playlist(&id).await;
                 if cookies.is_some() {
+                    debug!("Downloading Playlist with cookies");
                     download_request.download_playlist(cookies).await;
                 }
                 else {
+                    debug!("Downloading Playlist without cookies");
                     download_request.download_playlist(None).await;
                 }
+                debug!("Removing videos removed by user");
                 download_request.remove_vidoes().await;
             });
         }
+        debug!("Joining handles");
         handles.join_all().await;
     }
 
     if let Some(id) = args.id {
+        debug!("Making DownloadRequest");
         let download_request = DownloadRequest::check_playlist(&id).await;
+        debug!("Cookies: {:?}", args.cookies);
         if args.cookies.is_some() {
+            debug!("Downloading Playlist with cookies");
             download_request.download_playlist(args.cookies).await;
         }
         else {
+            debug!("Downloading Playlist without cookies");
             download_request.download_playlist(None).await;
         }
+        debug!("Removing videos removed by user");
         download_request.remove_vidoes().await;
     }
 }

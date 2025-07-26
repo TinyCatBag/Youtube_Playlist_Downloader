@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 clap = {version = "4.5.23", features = ["derive"]}
+env_logger = "0.11.8"
+log = "0.4.27"
 opusmeta = "1.1.0"
 reqwest = {version="0.12.8", default-features = false, features=["default-tls"]}
 serde_json = {version="1.0.128", default-features = false, features=["std"]}
