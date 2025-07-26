@@ -24,7 +24,7 @@ struct Args {
 
 #[tokio::main]
 async fn  main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("warn")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let args = Args::parse();
     if args.file.is_none() && args.id.is_none(){
         panic!("No ID nor File with IDs was provided :3");

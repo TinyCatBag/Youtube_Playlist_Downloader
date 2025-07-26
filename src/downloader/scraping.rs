@@ -1,5 +1,5 @@
 use std::{path::{Path, PathBuf}, sync::Arc};
-use log::{debug, error, warn, trace, info};
+use log::{debug, warn, trace, info};
 use reqwest::{Client, get};
 use std::{env::current_dir, fs::create_dir, io::ErrorKind, vec};
 use serde_json::{from_str, Value};
@@ -39,7 +39,7 @@ impl Playlist {
                     warn!("Playlist directory alread exists: {}", &path.display())
                 }
                 else {
-                    error!("Error with creating playlist directory: {}", err);
+                    panic!("Error with creating playlist directory: {}", err);
                 }
             },
         }
