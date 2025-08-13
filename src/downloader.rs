@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env::current_dir, process::Command, sync::Arc};
+use std::{collections::HashMap, env::current_dir, fs::create_dir_all, path::PathBuf, process::Command, sync::Arc};
 use log::{debug, trace, warn, info};
 use opusmeta::Tag;
 //TODO: implement idicatif again
@@ -7,15 +7,52 @@ mod scraping;
 use scraping::*;
 
 pub struct DownloadRequest {
+    download_dir: PathBuf,
+    // download_name: String //TODO: Let the user do it a bit like YTP-DL :}
     playlist: Playlist,
     missing_videos:     HashMap<String, Arc<Video>>,
     remove_vidoes:      HashMap<String, Video>,
 }
 
 impl DownloadRequest {
-    pub async fn check_playlist(id: impl AsRef<str>) -> Self {
+    pub async fn check_playlist(id: impl AsRef<str>, download_dir: Option<String>, download_name: Option<String>) -> Self {
+        let download_dir = match download_dir {
+            Some(path) => {
+                //Higly likely that it cant be an empty string because of clap but will check anyway.
+                if path.is_empty() {
+                    warn!("Empty output path, using current directory! (Default)");
+                    let dir = current_dir().unwrap();
+                    if let Err(error) = create_dir_all(&dir){
+                        println!("{:#?}, kind {:#?}", error, error.kind())
+                    };
+                    dir
+                }
+                else if path.chars().nth(0).unwrap() == '/' {
+                    debug!("Using absolute path!");
+                    let dir = PathBuf::from(path);
+                    if let Err(error) = create_dir_all(&dir){
+                        println!("{:#?}, kind {:#?}", error, error.kind())
+                    };
+                    dir
+                }
+                else {
+                    debug!("Adding output directory to current directory");
+                    let dir = current_dir().unwrap().join(PathBuf::from(&path));
+                    if let Err(error) = create_dir_all(&dir){
+                        println!("{:#?}, kind {:#?}", error, error.kind())
+                    };
+                    dir
+                }
+            },
+            None => {
+                debug!("No path provided, using current directory (Default)");
+                current_dir().unwrap()
+            },
+        };
+        debug!("Download dir: {}", download_dir.display());
+
         let id = id.as_ref();
-        let playlist = Playlist::new(id).await;
+        let playlist = Playlist::new(id, download_dir.clone()).await;
         let playlist_hashmap = {
             debug!("Making playlist hashmap");
             let mut hashmap = HashMap::new();
@@ -28,7 +65,7 @@ impl DownloadRequest {
         let directory_hashmap = {
             debug!("Making directory hashmap");
             let mut hashmap = HashMap::new();
-            for entry in current_dir().unwrap().read_dir().unwrap() {
+            for entry in download_dir.read_dir().unwrap() {
                 let entry = entry.unwrap();
                 trace!("entry: {}", entry.file_name().display());
                 if entry.file_type().unwrap().is_file() { trace!("Skipped file: {}", entry.file_name().display()); continue; }
@@ -87,6 +124,8 @@ impl DownloadRequest {
             hashmap
         };
         Self {
+            download_dir,
+            // download_name
             playlist,
             // playlist_hashmap,
             // directory_hashmap,
@@ -102,7 +141,9 @@ impl DownloadRequest {
             // , "--cookies", cookies
             let mut args = vec!["--embed-thumbnail".to_string(), 
                     "-x".to_string() ,"--audio-format".to_string(), "opus".to_string(),
-                    "-o".to_string(), format!("{0}/{0} - %(title)s.%(ext)s", self.playlist.title,),
+                    "-o".to_string(), format!("{0}/{1}/{1} - %(title)s.%(ext)s",
+                        self.playlist.path.display(),
+                        self.playlist.title),
                     format!("https://www.youtube.com/watch?v={}", video.id)];
                 if let Some(cookies) = &cookies {
                     args.push("--cookies".to_string());

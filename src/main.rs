@@ -14,6 +14,12 @@ struct Args {
     /// File to read from
     #[arg(short, long)]
     file: Option<String>,
+    /// Output directory can be absolute. Case sensitive!
+    #[arg(short, long)]
+    output: Option<String>,
+    /// Name for file that will be downloaded
+    #[arg(short, long)]
+    name: Option<String>,
     /// Add a cookies file if you want to download age-restriced videos.
     /// The yt-dlp github has a good guide on it, I recommend using the private window method with a new account.
     /// https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies
@@ -38,12 +44,20 @@ async fn  main() {
         let mut handles = tokio::task::JoinSet::new();
         for id in lines {
             let id = id.to_owned();
-            debug!("ID: {id}");
+            let output = args.output.to_owned();
+            let name = args.name.to_owned();
             let cookies = args.cookies.to_owned();
+            debug!("ID: {id}");
+            debug!("Output: {:#?}", output);
+            debug!("Name: {:#?}", name);
             debug!("Cookies: {:?}", cookies);
             handles.spawn(async move { 
                 debug!("Making DownloadRequest");
-                let download_request = DownloadRequest::check_playlist(&id).await;
+                let download_request = DownloadRequest::check_playlist(
+                    &id,
+                    output,
+                    name
+                ).await;
                 if cookies.is_some() {
                     debug!("Downloading Playlist with cookies");
                     download_request.download_playlist(cookies).await;
@@ -61,9 +75,17 @@ async fn  main() {
     }
 
     if let Some(id) = args.id {
-        debug!("Making DownloadRequest");
-        let download_request = DownloadRequest::check_playlist(&id).await;
+        debug!("ID: {id}");
+        debug!("Output: {:?}", args.output);
+        debug!("Name: {:?}", args.name);
         debug!("Cookies: {:?}", args.cookies);
+
+        debug!("Making DownloadRequest");
+        let download_request = DownloadRequest::check_playlist(
+            &id,
+            args.output,
+            args.name
+        ).await;
         if args.cookies.is_some() {
             debug!("Downloading Playlist with cookies");
             download_request.download_playlist(args.cookies).await;

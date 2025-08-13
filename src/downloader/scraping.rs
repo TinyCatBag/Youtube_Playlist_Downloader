@@ -1,7 +1,7 @@
 use std::{path::{Path, PathBuf}, sync::Arc};
 use log::{debug, warn, trace, info};
 use reqwest::{Client, get};
-use std::{env::current_dir, fs::create_dir, io::ErrorKind, vec};
+use std::{fs::create_dir, io::ErrorKind, vec};
 use serde_json::{from_str, Value};
 
 #[derive(Clone)]
@@ -22,13 +22,13 @@ pub struct Video {
 }
 
 impl Playlist {
-    pub async fn new(id: impl Into<String>) -> Self{
+    pub async fn new(id: impl Into<String>, download_dir: PathBuf) -> Self{
         let id: String = id.into();
         //TODO: Find a smart way to not request the entire value JUST for the title :3
         let value = Self::get_value(&id, None).await;
         trace!("Playlist value: {value}");
         let title = Self::get_title(&value);
-        let mut path = current_dir().unwrap();
+        let mut path = download_dir;
         path.push(&title);
         debug!("Playlist title: {title}, path: path");
 
