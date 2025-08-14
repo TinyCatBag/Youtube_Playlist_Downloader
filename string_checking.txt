@@ -1,7 +1,0 @@
-1. None {}      Done
-2. { and  }     Done
-3. Not closed { Done
-4. Not opened } Done
-5. \{ and }     
-6. { and \}     
-7. \{ and \}    
