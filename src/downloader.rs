@@ -6,16 +6,19 @@ use opusmeta::Tag;
 mod scraping;
 use scraping::*;
 
+mod name;
+use name::*;
+
 pub struct DownloadRequest {
     download_dir: PathBuf,
-    // download_name: String //TODO: Let the user do it a bit like YTP-DL :}
+    download_name: NameWhole, //TODO: Let the user do it a bit like YTP-DL :}
     playlist: Playlist,
-    missing_videos:     HashMap<String, Arc<Video>>,
-    remove_vidoes:      HashMap<String, Video>,
+    missing_videos: HashMap<String, Arc<Video>>,
+    remove_vidoes: HashMap<String, Video>,
 }
 
 impl DownloadRequest {
-    pub async fn check_playlist(id: impl AsRef<str>, download_dir: Option<String>, download_name: Option<String>) -> Self {
+    pub async fn check_playlist(id: impl AsRef<str>, download_dir: Option<String>, download_name: Option<&str>) -> Self {
         let download_dir = match download_dir {
             Some(path) => {
                 //Higly likely that it cant be an empty string because of clap but will check anyway.
@@ -50,7 +53,7 @@ impl DownloadRequest {
             },
         };
         debug!("Download dir: {}", download_dir.display());
-
+        let download_name = NameWhole::from_string(&download_name);
         let id = id.as_ref();
         let playlist = Playlist::new(id, download_dir.clone()).await;
         let playlist_hashmap = {
@@ -125,7 +128,7 @@ impl DownloadRequest {
         };
         Self {
             download_dir,
-            // download_name
+            download_name,
             playlist,
             // playlist_hashmap,
             // directory_hashmap,
@@ -137,18 +140,21 @@ impl DownloadRequest {
     pub async fn download_playlist(self: &Self, cookies: Option<String>) {
         let mut counter = 1;
         for (video_id, video) in &self.missing_videos {
+            let download_path = PathBuf::from(self.download_name.full_download_path(video, &self.playlist));
             info!("Downloading: {} | {} out of {}", video.formatted_title, counter, self.missing_videos.len());
             // , "--cookies", cookies
             let mut args = vec!["--embed-thumbnail".to_string(), 
                     "-x".to_string() ,"--audio-format".to_string(), "opus".to_string(),
-                    "-o".to_string(), format!("{0}/{1}/{1} - %(title)s.%(ext)s",
-                        self.playlist.path.display(),
-                        self.playlist.title),
+                    "-o".to_string(), format!("{0}", download_path.display()),
+                    // "-o".to_string(), format!("{0}/{1}/{1} - %(title)s.%(ext)s",
+                    //     self.playlist.path.display(),
+                    //     self.playlist.title),
                     format!("https://www.youtube.com/watch?v={}", video.id)];
                 if let Some(cookies) = &cookies {
                     args.push("--cookies".to_string());
                     args.push(cookies.to_string());
                 }
+            debug!("Downloading video to: {}", download_path.display());
             let mut downloader = Command::new("yt-dlp")
                 .args(args)
                 .stdout(std::process::Stdio::null())
@@ -157,25 +163,25 @@ impl DownloadRequest {
 
             downloader.wait().expect("Downloader failed =3");
 
-            match Tag::read_from_path(&video.path) {
+            match Tag::read_from_path(&download_path) {
                 Ok(mut tag) => {
                     tag.add_one("Title".to_string(), video.title.clone());
                     tag.add_one("Artist".to_string(), video.author.clone());
                     tag.add_one("Performer".to_string(), video.author.clone());
                     tag.add_one("Video_ID".to_string(), video.id.clone());
                     tag.add_one("Album".to_string(), self.playlist.title.clone());
-                    tag.write_to_path(&video.path).unwrap();
+                    tag.write_to_path(&download_path).unwrap();
                 },
                 // Cant get the error kiind ffs
                 //TODO: Read the docs about this
                 Err(_) => {
-                    if !video.path.exists() {
-                        warn!("Failed to download: {}", video_id);
+                    if !download_path.exists() {
+                        warn!("Failed to download: {}, at {}", video_id, download_path.display());
                         warn!("You should check if the video is age-restricted, if it is you need to pass cookies, to learn about that just do -h.");
                         warn!("Otherwise please report it on my github!")
                     }
                     else {
-                        warn!("Failed to read tag from: {},", video_id);
+                        warn!("Failed to read tag from: {}, at {}", video_id, download_path.display());
                         warn!("You should remove the file as it will have no tags and the program will try to download it again.");
                         //TODO: do this for the user :L
                     }

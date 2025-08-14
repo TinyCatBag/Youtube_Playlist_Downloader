@@ -17,8 +17,14 @@ struct Args {
     /// Output directory can be absolute. Case sensitive!
     #[arg(short, long)]
     output: Option<String>,
-    /// Name for file that will be downloaded
-    #[arg(short, long)]
+    /// Name for file that will be downloaded.
+    /// You can put in video/playlist specific things in the name for e.g.
+    /// "{PlaylistTitle} - {VideoTitle}" will be converted to "CoolPlaylist - Really cool song.opus".
+    /// Variables that can be accesed by putting them in {}
+    /// VideoTitle,     PlaylistTitle,
+    /// CurrentDate,    ReleaseDate,
+    /// Author,         VideoID,
+    #[arg(short, long, verbatim_doc_comment)]
     name: Option<String>,
     /// Add a cookies file if you want to download age-restriced videos.
     /// The yt-dlp github has a good guide on it, I recommend using the private window method with a new account.
@@ -56,7 +62,7 @@ async fn  main() {
                 let download_request = DownloadRequest::check_playlist(
                     &id,
                     output,
-                    name
+                    name.as_deref()
                 ).await;
                 if cookies.is_some() {
                     debug!("Downloading Playlist with cookies");
@@ -84,7 +90,7 @@ async fn  main() {
         let download_request = DownloadRequest::check_playlist(
             &id,
             args.output,
-            args.name
+            args.name.as_deref()
         ).await;
         if args.cookies.is_some() {
             debug!("Downloading Playlist with cookies");
