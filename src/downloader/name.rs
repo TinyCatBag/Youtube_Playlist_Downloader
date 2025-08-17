@@ -141,7 +141,7 @@ impl NameWhole {
             None => NameWhole::default()
         }
     }
-    pub fn full_download_path(self: &Self, video: &Video, playlist: &Playlist) -> String {
+    pub fn formatted_download_path(self: &Self, video: &Video, playlist: &Playlist) -> String {
         let mut download_name = String::new();
         download_name.push_str(Self::namepart_to_string(&self.first, video, playlist));
         for namepart in &self.rest {
@@ -150,6 +150,14 @@ impl NameWhole {
         download_name.push_str(".opus");
         //TODO: we could do this faster just look below
         format!("{}/{}", playlist.path.display(), download_name.replace("{{", "{").replace("}}", "}"))
+    }
+    pub fn formatted_video_title(self: &Self, video: &Video, playlist: &Playlist) -> String {
+        let mut download_name = String::new();
+        download_name.push_str(Self::namepart_to_string(&self.first, video, playlist));
+        for namepart in &self.rest {
+            download_name.push_str(Self::namepart_to_string(namepart, video, playlist));
+        }
+        download_name
     }
     fn namepart_to_string<'a>(namepart: &'a NamePart, video: &'a Video, playlist: &'a Playlist) -> &'a str {
         match namepart {

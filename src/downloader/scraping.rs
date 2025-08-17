@@ -15,7 +15,7 @@ pub struct Playlist {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Video {
     pub title: String,
-    pub formatted_title: String,
+    // pub formatted_title: String,
     pub author: String,
     pub id: String,
     pub path: PathBuf,
@@ -197,7 +197,7 @@ impl Video {
         trace!("Video path: {}", path.display());
         Self {
             title,
-            formatted_title,
+            // formatted_title,
             author,
             id,
             path,

@@ -2,6 +2,7 @@ use std::{collections::HashMap, env::current_dir, fs::create_dir_all, path::Path
 use log::{debug, trace, warn, info};
 use opusmeta::Tag;
 //TODO: implement idicatif again
+//TODO: Still have to change the formatted title to match the file names tho that will be easy
 
 mod scraping;
 use scraping::*;
@@ -89,13 +90,14 @@ impl DownloadRequest {
                         //      implement error handling womp womp
                         
                         let title = tag.get_one("Title".to_string()).unwrap().to_owned();
-                        let formatted_title = format!("{} - {}", playlist.title, title);
+                        // let formatted_title = format!("{} - {}", playlist.title, title);
                         let author = tag.get_one("Artist".to_string()).unwrap().to_owned();
                         let id = tag.get_one("Video_ID".to_string()).unwrap().to_owned();
-                        trace!("Metadata: title: {title}, formatted_title: {formatted_title}, author: {author}, id: {id}");
+                        // trace!("Metadata: title: {title}, formatted_title: {formatted_title}, author: {author}, id: {id}");
+                        trace!("Metadata: title: {title}, author: {author}, id: {id}");
                         let video = Video {
                             title,
-                            formatted_title,
+                            // formatted_title,
                             author,
                             id: id.clone(),
                             path,
@@ -110,7 +112,7 @@ impl DownloadRequest {
             let mut hashmap = HashMap::new();
             for (video_id, video) in playlist_hashmap.clone() {
                 if !directory_hashmap.contains_key(&video_id) && video.id != "Legacy"{
-                    debug!("Added video to missing queue: id: {}, path: {}, title: {}", video.id, video.path.display(), video.formatted_title);
+                    debug!("Added video to missing queue: id: {}, path: {}, title: {}", video.id, video.path.display(), video.title);
                     hashmap.insert(video_id, video);
                 }
             }
@@ -120,7 +122,7 @@ impl DownloadRequest {
             let mut hashmap = HashMap::new();
             for (video_id, video) in directory_hashmap {
                 if !playlist_hashmap.contains_key(&video_id) && video.id != "Legacy"{
-                    debug!("Added video to remove queue: id: {}, path: {}, title: {}", video.id, video.path.display(), video.formatted_title);
+                    debug!("Added video to remove queue: id: {}, path: {}, title: {}", video.id, video.path.display(), video.title);
                     hashmap.insert(video_id, video);
                 }
             }
@@ -140,15 +142,13 @@ impl DownloadRequest {
     pub async fn download_playlist(self: &Self, cookies: Option<String>) {
         let mut counter = 1;
         for (video_id, video) in &self.missing_videos {
-            let download_path = PathBuf::from(self.download_name.full_download_path(video, &self.playlist));
-            info!("Downloading: {} | {} out of {}", video.formatted_title, counter, self.missing_videos.len());
-            // , "--cookies", cookies
+            //Should we use the formatted title or just the regular one???
+            let formatted_title = self.download_name.formatted_video_title(video, &self.playlist);
+            let download_path = PathBuf::from(self.download_name.formatted_download_path(video, &self.playlist));
+            info!("Downloading: {} | {} out of {}", formatted_title, counter, self.missing_videos.len());
             let mut args = vec!["--embed-thumbnail".to_string(), 
                     "-x".to_string() ,"--audio-format".to_string(), "opus".to_string(),
                     "-o".to_string(), format!("{0}", download_path.display()),
-                    // "-o".to_string(), format!("{0}/{1}/{1} - %(title)s.%(ext)s",
-                    //     self.playlist.path.display(),
-                    //     self.playlist.title),
                     format!("https://www.youtube.com/watch?v={}", video.id)];
                 if let Some(cookies) = &cookies {
                     args.push("--cookies".to_string());
@@ -187,14 +187,14 @@ impl DownloadRequest {
                     }
                 },
             };
-            info!("Finished downloading: {} | {} out of {}", video.formatted_title, counter, self.missing_videos.len());
+            info!("Finished downloading: {} | {} out of {}", formatted_title, counter, self.missing_videos.len());
             counter+=1;
         }
     }
 
     pub async fn remove_vidoes(self: &Self) {
         for (_video_id, video) in &self.remove_vidoes {
-            debug!("Video found in remove queue: title: {}, path: {}, id: {}", video.formatted_title, &video.path.display(), video.id)
+            debug!("Video found in remove queue: title: {}, path: {}, id: {}", video.title, &video.path.display(), video.id)
         }
     }
 }
