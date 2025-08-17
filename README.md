@@ -26,6 +26,7 @@
         VideoTitle,     PlaylistTitle,
         CurrentDate,    ReleaseDate,
         Author,         VideoID,
+    You can still include '{' and '}' in the file name by typing them twice to breakout of them!
 ----------
 #### Youtube_Playlist_Downloader -c/-cookies *file_with_cookies*
     Obtain the file with your cookies by following the guide at
