@@ -24,6 +24,7 @@ struct Args {
     /// VideoTitle,     PlaylistTitle,
     /// CurrentDate,    ReleaseDate,
     /// Author,         VideoID,
+    /// You can still include '{' and '}' in the file name by typing them twice to breakout of them!
     #[arg(short, long, verbatim_doc_comment)]
     name: Option<String>,
     /// Add a cookies file if you want to download age-restriced videos.
