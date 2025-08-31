@@ -1,6 +1,6 @@
 use std::{collections::HashMap, env::current_dir, fs::create_dir_all, path::PathBuf, process::Command, sync::Arc};
 use log::{debug, trace, warn, info};
-use opusmeta::Tag;
+use opusmeta::{LowercaseString, Tag};
 //TODO: implement idicatif again
 //TODO: Still have to change the formatted title to match the file names tho that will be easy
 
@@ -89,10 +89,10 @@ impl DownloadRequest {
                         //TODO: if stopped midway this erros as the files have no metadata fuuuuck
                         //      implement error handling womp womp
                         
-                        let title = tag.get_one("Title".to_string()).unwrap().to_owned();
+                        let title = tag.get_one(&LowercaseString::new("Title")).unwrap().to_owned();
                         // let formatted_title = format!("{} - {}", playlist.title, title);
-                        let author = tag.get_one("Artist".to_string()).unwrap().to_owned();
-                        let id = tag.get_one("Video_ID".to_string()).unwrap().to_owned();
+                        let author = tag.get_one(&LowercaseString::new("Artist")).unwrap().to_owned();
+                        let id = tag.get_one(&LowercaseString::new("Video_ID")).unwrap().to_owned();
                         // trace!("Metadata: title: {title}, formatted_title: {formatted_title}, author: {author}, id: {id}");
                         trace!("Metadata: title: {title}, author: {author}, id: {id}");
                         let video = Video {
@@ -165,11 +165,11 @@ impl DownloadRequest {
 
             match Tag::read_from_path(&download_path) {
                 Ok(mut tag) => {
-                    tag.add_one("Title".to_string(), video.title.clone());
-                    tag.add_one("Artist".to_string(), video.author.clone());
-                    tag.add_one("Performer".to_string(), video.author.clone());
-                    tag.add_one("Video_ID".to_string(), video.id.clone());
-                    tag.add_one("Album".to_string(), self.playlist.title.clone());
+                    tag.add_one(LowercaseString::new("Title"), video.title.clone());
+                    tag.add_one(LowercaseString::new("Artist"), video.author.clone());
+                    tag.add_one(LowercaseString::new("Performer"), video.author.clone());
+                    tag.add_one(LowercaseString::new("Video_ID"), video.id.clone());
+                    tag.add_one(LowercaseString::new("Album"), self.playlist.title.clone());
                     tag.write_to_path(&download_path).unwrap();
                 },
                 // Cant get the error kiind ffs
