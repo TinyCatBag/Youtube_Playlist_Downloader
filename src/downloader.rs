@@ -4,18 +4,18 @@ use opusmeta::{LowercaseString, Tag};
 //TODO: implement idicatif again
 //TODO: Still have to change the formatted title to match the file names tho that will be easy
 
-mod scraping;
+pub mod scraping;
 use scraping::*;
 
-mod name;
+pub mod name;
 use name::*;
 
 pub struct DownloadRequest {
-    download_dir: PathBuf,
-    download_name: NameWhole, //TODO: Let the user do it a bit like YTP-DL :}
-    playlist: Playlist,
-    missing_videos: HashMap<String, Arc<Video>>,
-    remove_vidoes: HashMap<String, Video>,
+    pub download_dir: PathBuf,
+    pub download_name: NameWhole, //TODO: Let the user do it a bit like YTP-DL :}
+    pub playlist: Playlist,
+    pub missing_videos: HashMap<String, Arc<Video>>,
+    pub remove_vidoes: HashMap<String, Video>,
 }
 
 impl DownloadRequest {

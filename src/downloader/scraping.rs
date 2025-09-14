@@ -3,8 +3,9 @@ use log::{debug, warn, trace, info};
 use reqwest::{Client, get};
 use std::{fs::create_dir, io::ErrorKind, vec};
 use serde_json::{from_str, Value};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Playlist {
     pub videos: Vec<Arc<Video>>,
     pub title: String,
@@ -12,7 +13,7 @@ pub struct Playlist {
     pub id: String,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Video {
     pub title: String,
     // pub formatted_title: String,

@@ -1,7 +1,9 @@
 use std::usize;
+use serde::{Deserialize, Serialize};
+
 use crate::downloader::*;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum NamePart {
     //Titles
     VideoTitle,
@@ -18,7 +20,7 @@ pub enum NamePart {
 }
 
 // Make it impossible to have an empty name >*-*<
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct NameWhole{
     first: NamePart,
     rest: Vec<NamePart>,
@@ -309,13 +311,13 @@ mod tests {
     }
     #[test]
     fn find_value_whole() {
-        // env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
+        let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).is_test(true).try_init();
         let str = "{PlaylistTitle} - {VideoTitle}";
         assert_eq!(NameWhole::from_string(&Some(&str)), NameWhole::new(NamePart::PlaylistTitle, vec![NamePart::String(" - ".to_string()), NamePart::VideoTitle]))
     }
     #[test]
     fn find_value_whole_v2() {
-        // env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
+        let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).is_test(true).try_init();
         let str = "{PlaylistTitle} - {VideoTitle} - Whoo look at me hehe";
         assert_eq!(NameWhole::from_string(&Some(&str)), NameWhole::new(NamePart::PlaylistTitle, vec![
             NamePart::String(" - ".to_string()),
@@ -325,7 +327,7 @@ mod tests {
     }
     #[test]
     fn find_value_whole_with_breakouts() {
-        // env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
+        let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).is_test(true).try_init();
         let str = "{{PlaylistTitle}} - {VideoTitle} - {Author} - {{VideoID}} - Whoo look at me hehe";
         assert_eq!(NameWhole::from_string(&Some(&str)), NameWhole::new(NamePart::String("{{PlaylistTitle}} - ".to_string()), vec![
             NamePart::VideoTitle,

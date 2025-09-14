@@ -2,8 +2,12 @@ use std::{fs::read_to_string};
 use log::{debug};
 use env_logger::Env;
 use clap::{command, Parser, Subcommand};
+
 mod downloader;
 use downloader::*;
+
+mod local;
+use local::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

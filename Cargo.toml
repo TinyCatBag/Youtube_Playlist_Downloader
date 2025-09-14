@@ -9,6 +9,7 @@ env_logger = "0.11.8"
 log = "0.4.27"
 opusmeta = "2.0.0"
 reqwest = {version = "0.12.23", default-features = false, features=["default-tls"]}
+serde = {version = "1.0.219", default-features = false, features=["std", "rc"]}
 serde_json = { version = "1.0.128", default-features = false, features = ["std"] }
 tokio = { version = "1.40.0", default-features = false, features = ["macros", "rt-multi-thread"] }
 url = { version = "2.5.4", default-features = false, features = ["std"] }
