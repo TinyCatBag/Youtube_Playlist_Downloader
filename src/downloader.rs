@@ -21,16 +21,16 @@ pub struct DownloadRequest {
 
 impl DownloadRequest {
     pub async fn check_playlist(id: impl AsRef<str>, download_dir: Option<String>, download_name: Option<&str>) -> Self {
-        let download_dir = string_to_download_directory(download_dir);
+        let download_dir = Self::string_to_download_directory(download_dir);
         let download_name = NameWhole::from_string(&download_name);
 
         let id = id.as_ref();
         let playlist = Playlist::new(id, download_dir.clone()).await;
 
         let playlist_hashmap = playlist.make_playlist_hashmap();
-        let directory_hashmap = make_directory_hashmap(&download_dir, &playlist.title);
-        let missing_videos = missing_videos(&playlist_hashmap, &directory_hashmap);
-        let removed_vidoes = removed_videos(&playlist_hashmap, directory_hashmap);
+        let directory_hashmap = Self::make_directory_hashmap(&download_dir, &playlist.title);
+        let missing_videos = Self::missing_videos(&playlist_hashmap, &directory_hashmap);
+        let removed_vidoes = Self::removed_videos(&playlist_hashmap, directory_hashmap);
 
         Self {
             download_dir,
