@@ -1,4 +1,4 @@
-use std::{fs::read_to_string};
+use std::{fs::read_to_string, path::PathBuf, str::FromStr};
 use log::{debug};
 use env_logger::Env;
 use clap::{command, Parser, Subcommand};
@@ -8,6 +8,8 @@ use downloader::*;
 
 mod local;
 use local::*;
+
+use crate::downloader::{scraping::Playlist};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -36,11 +38,18 @@ struct Args {
 }
 
 #[derive(Subcommand, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[command(group(clap::ArgGroup::new("path").required(true)))]
 enum TargetCommands {
     /// Allows you to make and edit your playlists localy without having to go through youtube,
     /// it will not reflect on the actual playlist in the cloud yet!!!
     #[command(verbatim_doc_comment)]
     Local {
+        /// Create a local playlist, first argument is the playlist id the second one is the path
+        #[arg(short, long, num_args = 2, group = "path")]
+        create: Option<Vec<String>>,
+        /// Path to playlist that you want to interact with
+        #[arg(short, long, group = "path")]
+        target: Option<String>,
         /// Add video/videos to a playlist (if adding from a playlist will ignore duplicates)
         #[arg(short, long, value_parser = parse_video_or_playlist)]
         add: Option<VideoOrPlaylist>,
@@ -49,21 +58,18 @@ enum TargetCommands {
         remove: Option<VideoOrPlaylist>,
         /// Downlaod a playlist.
         #[arg(short, long)]
-        download: Option<String>,
+        download: bool,
         /// Lists all videos in a locally saved playlist.
         #[arg(short, long)]
-        list: Option<String>,
+        list: bool,
     },
     /// Download playlists from youtube
     Remote{
-        /// Downlaod a playlist.
-        #[arg(short, long)]
-        download: Option<String>,
         /// Playlist ID to download.
-        #[arg(short, long)]
+        #[arg(short, long, group = "path")]
         id: Option<String>,
         /// File to read ID's from.
-        #[arg(short, long)]
+        #[arg(short, long, group = "path")]
         file: Option<String>,
     }
 }
@@ -91,11 +97,46 @@ async fn  main() {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let args = Args::parse();
     match args.target {
-        TargetCommands::Local { add, remove, download, list } => {
+        TargetCommands::Local { create, target, add, remove, download, list } => {
+            if add.is_none() && remove.is_none() {
+                panic!("No action selected!")
+            }
+            let mut local_playlist = if let Some(path) = target {
+                LocalPlaylist::from_file(PathBuf::from_str(&path).unwrap()).unwrap()
+            }
+            //TODO: this is supposed to be 2 string uppps
+            else if let Some(create) = create {
+                let download_name = None; //TODO: No download Name
+                let download_dir = create[1];
+                let id = create[0];
+                LocalPlaylist::from_download_request(DownloadRequest::check_playlist(id, download_dir, download_name).await)
+            }
+            else {
+                panic!("Target or create needed")
+            };
+            if let Some(add) = add {
+                match add {
+                    VideoOrPlaylist::Video(id) => local_playlist.add_video(todo!("Forgor about singular videos!")),
+                    VideoOrPlaylist::Playlist(id) => local_playlist.add_playlist(Playlist::new(id, PathBuf::new()).await),
+                }
+            }
+            if let Some(remove) = remove {
+                match remove {
+                    VideoOrPlaylist::Video(id) => local_playlist.remove_video(todo!("Forgor about singular videos!")),
+                    VideoOrPlaylist::Playlist(id) => local_playlist.remove_playlist(Playlist::new(id, PathBuf::new()).await),
+                }
+            }
+            if list {
+                local_playlist.list_playlist();
+            }
+            if download {
+                local_playlist.into_download_request().download_playlist(args.cookies).await;
+            }
+
             todo!("Didnt make any local things yet!")
         }
         //TOOD: The code below is complete and utter dogshit(Again), maybe actually idk=:3
-        TargetCommands::Remote { download, id, file } => {
+        TargetCommands::Remote { id, file } => {
             if file.is_none() && id.is_none(){
                 panic!("No ID nor File with IDs was provided :3");
             }

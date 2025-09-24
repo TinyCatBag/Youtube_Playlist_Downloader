@@ -12,122 +12,26 @@ use name::*;
 
 pub struct DownloadRequest {
     pub download_dir: PathBuf,
-    pub download_name: NameWhole, //TODO: Let the user do it a bit like YTP-DL :}
+    pub download_name: NameWhole,
     pub playlist: Playlist,
     pub missing_videos: HashMap<String, Arc<Video>>,
-    pub remove_vidoes: HashMap<String, Video>,
+    pub removed_vidoes: HashMap<String, Video>,
 }
+
 
 impl DownloadRequest {
     pub async fn check_playlist(id: impl AsRef<str>, download_dir: Option<String>, download_name: Option<&str>) -> Self {
-        let download_dir = match download_dir {
-            Some(path) => {
-                //Higly likely that it cant be an empty string because of clap but will check anyway.
-                if path.is_empty() {
-                    warn!("Empty output path, using current directory! (Default)");
-                    let dir = current_dir().unwrap();
-                    if let Err(error) = create_dir_all(&dir){
-                        println!("{:#?}, kind {:#?}", error, error.kind())
-                    };
-                    dir
-                }
-                else if path.chars().nth(0).unwrap() == '/' {
-                    debug!("Using absolute path!");
-                    let dir = PathBuf::from(path);
-                    if let Err(error) = create_dir_all(&dir){
-                        println!("{:#?}, kind {:#?}", error, error.kind())
-                    };
-                    dir
-                }
-                else {
-                    debug!("Adding output directory to current directory");
-                    let dir = current_dir().unwrap().join(PathBuf::from(&path));
-                    if let Err(error) = create_dir_all(&dir){
-                        println!("{:#?}, kind {:#?}", error, error.kind())
-                    };
-                    dir
-                }
-            },
-            None => {
-                debug!("No path provided, using current directory (Default)");
-                current_dir().unwrap()
-            },
-        };
-        debug!("Download dir: {}", download_dir.display());
+        let download_dir = string_to_download_directory(download_dir);
         let download_name = NameWhole::from_string(&download_name);
+
         let id = id.as_ref();
         let playlist = Playlist::new(id, download_dir.clone()).await;
-        let playlist_hashmap = {
-            debug!("Making playlist hashmap");
-            let mut hashmap = HashMap::new();
-            for video in &playlist.videos {
-                hashmap.insert(video.id.clone(), video.clone());
-                trace!("Video id: {}", video.id);
-            }
-            hashmap
-        };
-        let directory_hashmap = {
-            debug!("Making directory hashmap");
-            let mut hashmap = HashMap::new();
-            for entry in download_dir.read_dir().unwrap() {
-                let entry = entry.unwrap();
-                trace!("entry: {}", entry.file_name().display());
-                if entry.file_type().unwrap().is_file() { trace!("Skipped file: {}", entry.file_name().display()); continue; }
-                if entry.file_name().to_str().unwrap() == playlist.title {
-                    debug!("Found directory: {}", entry.file_name().display());
-                    for inner_entry in entry.path().read_dir().unwrap() {
-                        let inner_entry = inner_entry.unwrap();
-                        trace!("Inner entry: {}", inner_entry.file_name().display());
-                        // println!("path_error: {:#?}", inner_entry.path());
-                        if inner_entry.file_type().unwrap().is_dir() { trace!("Skipped file: {}", inner_entry.file_name().display()); continue; }
 
-                        let path = inner_entry.path();
-                        trace!("Inner entry path: {}", path.display());
-                        let tag = Tag::read_from_path(&path).unwrap();
-                        // trace!("Inner entry tags: {:?}", tag);
+        let playlist_hashmap = playlist.make_playlist_hashmap();
+        let directory_hashmap = make_directory_hashmap(&download_dir, &playlist.title);
+        let missing_videos = missing_videos(&playlist_hashmap, &directory_hashmap);
+        let removed_vidoes = removed_videos(&playlist_hashmap, directory_hashmap);
 
-                        //TODO: if stopped midway this erros as the files have no metadata fuuuuck
-                        //      implement error handling womp womp
-                        
-                        let title = tag.get_one(&LowercaseString::new("Title")).unwrap().to_owned();
-                        // let formatted_title = format!("{} - {}", playlist.title, title);
-                        let author = tag.get_one(&LowercaseString::new("Artist")).unwrap().to_owned();
-                        let id = tag.get_one(&LowercaseString::new("Video_ID")).unwrap().to_owned();
-                        // trace!("Metadata: title: {title}, formatted_title: {formatted_title}, author: {author}, id: {id}");
-                        trace!("Metadata: title: {title}, author: {author}, id: {id}");
-                        let video = Video {
-                            title,
-                            // formatted_title,
-                            author,
-                            id: id.clone(),
-                            path,
-                        };
-                        hashmap.insert(id, video);
-                    }
-                }
-            }
-            hashmap
-        };
-        let missing_videos = {
-            let mut hashmap = HashMap::new();
-            for (video_id, video) in playlist_hashmap.clone() {
-                if !directory_hashmap.contains_key(&video_id) && video.id != "Legacy"{
-                    debug!("Added video to missing queue: id: {}, path: {}, title: {}", video.id, video.path.display(), video.title);
-                    hashmap.insert(video_id, video);
-                }
-            }
-            hashmap
-        };
-        let remove_vidoes = {
-            let mut hashmap = HashMap::new();
-            for (video_id, video) in directory_hashmap {
-                if !playlist_hashmap.contains_key(&video_id) && video.id != "Legacy"{
-                    debug!("Added video to remove queue: id: {}, path: {}, title: {}", video.id, video.path.display(), video.title);
-                    hashmap.insert(video_id, video);
-                }
-            }
-            hashmap
-        };
         Self {
             download_dir,
             download_name,
@@ -135,7 +39,7 @@ impl DownloadRequest {
             // playlist_hashmap,
             // directory_hashmap,
             missing_videos,
-            remove_vidoes,
+            removed_vidoes,
         }
     }
         
@@ -193,8 +97,114 @@ impl DownloadRequest {
     }
 
     pub async fn remove_vidoes(self: &Self) {
-        for (_video_id, video) in &self.remove_vidoes {
+        for (_video_id, video) in &self.removed_vidoes {
             debug!("Video found in remove queue: title: {}, path: {}, id: {}", video.title, &video.path.display(), video.id)
         }
+    }
+
+    pub fn string_to_download_directory(string: Option<String>) -> PathBuf {
+        match string {
+            Some(path) => {
+                //Clap does in fact allow empty string's with "", i love life!
+                if path.is_empty() {
+                    warn!("Empty output path, using current directory! (Default)");
+                    let dir = current_dir().unwrap();
+                    if let Err(error) = create_dir_all(&dir){
+                        println!("{:#?}, kind {:#?}", error, error.kind())
+                    };
+                    dir
+                }
+                else if path.chars().nth(0).unwrap() == '/' {
+                    debug!("Using absolute path!");
+                    let dir = PathBuf::from(path);
+                    if let Err(error) = create_dir_all(&dir){
+                        println!("{:#?}, kind {:#?}", error, error.kind())
+                    };
+                    dir
+                }
+                else {
+                    debug!("Adding output directory to current directory");
+                    let dir = current_dir().unwrap().join(PathBuf::from(&path));
+                    if let Err(error) = create_dir_all(&dir){
+                        println!("{:#?}, kind {:#?}", error, error.kind())
+                    };
+                    dir
+                }
+            },
+            None => {
+                debug!("No path provided, using current directory (Default)");
+                current_dir().unwrap()
+            },
+        }
+    }
+    //String is a video ID
+    pub fn make_directory_hashmap(download_dir: &PathBuf, title: &String) -> HashMap<String, Video>{
+        debug!("Making directory hashmap");
+        let mut hashmap = HashMap::new();
+        for entry in download_dir.read_dir().unwrap() {
+            let entry = entry.unwrap();
+            trace!("entry: {}", entry.file_name().display());
+            if entry.file_type().unwrap().is_file() { trace!("Skipped file: {}", entry.file_name().display()); continue; }
+            if entry.file_name().to_str().unwrap() == title {
+                debug!("Found directory: {}", entry.file_name().display());
+                for inner_entry in entry.path().read_dir().unwrap() {
+                    let inner_entry = inner_entry.unwrap();
+                    trace!("Inner entry: {}", inner_entry.file_name().display());
+                    if inner_entry.file_type().unwrap().is_dir() { trace!("Skipped file: {}", inner_entry.file_name().display()); continue; }
+
+                    let path = inner_entry.path();
+                    trace!("Inner entry path: {}", path.display());
+                    let tag = Tag::read_from_path(&path).unwrap();
+
+                    //Gave info to the user 
+                    //TODO: if i can figure out how to not have to panic here without just skipping it!
+                    let title = tag.get_one(&LowercaseString::new("Title"));
+                    let author = tag.get_one(&LowercaseString::new("Artist"));
+                    let id = tag.get_one(&LowercaseString::new("Video_ID"));
+                    let (title, author, id) = match (title, author, id) {
+                        (Some(title), Some(author), Some(id)) => {
+                            (title.to_owned(), author.to_owned(), id.to_owned())
+                        }
+                        _ => {
+                            panic!("File is missing metadata, please remove it or move it! File path:{}", path.display())
+                        }
+                    };
+
+                    trace!("Metadata: title: {title}, author: {author}, id: {id}");
+                    let video = Video {
+                        title,
+                        // formatted_title,
+                        author,
+                        id: id.clone(),
+                        path,
+                    };
+                    hashmap.insert(id, video);
+                }
+            }
+        }
+        hashmap
+    }
+
+    //String is the video ID
+    pub fn missing_videos(playlist_hashmap: &HashMap<String, Arc<Video>>, directory_hashmap: &HashMap<String, Video>) -> HashMap<String, Arc<Video>> {
+        let mut hashmap = HashMap::new();
+        for (video_id, video) in playlist_hashmap.clone() {
+            if !directory_hashmap.contains_key(&video_id) && video.id != "Legacy"{
+                debug!("Added video to missing queue: id: {}, path: {}, title: {}", video.id, video.path.display(), video.title);
+                hashmap.insert(video_id, video);
+            }
+        }
+        hashmap
+    }
+
+    pub fn removed_videos(playlist_hashmap: &HashMap<String, Arc<Video>>, directory_hashmap: HashMap<String, Video>) -> HashMap<String, Video> {
+        let mut hashmap = HashMap::new();
+        for (video_id, video) in directory_hashmap {
+            if !playlist_hashmap.contains_key(&video_id) && video.id != "Legacy"{
+                debug!("Added video to remove queue: id: {}, path: {}, title: {}", video.id, video.path.display(), video.title);
+                hashmap.insert(video_id, video);
+            }
+        }
+        hashmap
     }
 }

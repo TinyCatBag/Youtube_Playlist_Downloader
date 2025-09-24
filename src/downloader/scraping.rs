@@ -1,4 +1,4 @@
-use std::{path::{Path, PathBuf}, sync::Arc};
+use std::{collections::HashMap, path::{Path, PathBuf}, sync::Arc};
 use log::{debug, warn, trace, info};
 use reqwest::{Client, get};
 use std::{fs::create_dir, io::ErrorKind, vec};
@@ -173,6 +173,15 @@ impl Playlist {
         }
 
         return videos;
+    }
+    pub fn make_playlist_hashmap(self: &Self) -> HashMap<String, Arc<Video>> {
+        debug!("Making playlist hashmap");
+        let mut hashmap = HashMap::new();
+        for video in &self.videos {
+            hashmap.insert(video.id.clone(), video.clone());
+            trace!("Video id: {}", video.id);
+        }
+        hashmap
     }
 }
 
