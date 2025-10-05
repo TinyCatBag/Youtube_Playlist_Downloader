@@ -27,7 +27,7 @@ impl DownloadRequest {
         let id = id.as_ref();
         let playlist = Playlist::new(id, download_dir.clone()).await;
 
-        let playlist_hashmap = playlist.make_playlist_hashmap();
+        let playlist_hashmap = playlist.make_playlist_hashmap_with_videos();
         let directory_hashmap = Self::make_directory_hashmap(&download_dir, &playlist.title);
         let missing_videos = Self::missing_videos(&playlist_hashmap, &directory_hashmap);
         let removed_vidoes = Self::removed_videos(&playlist_hashmap, directory_hashmap);
@@ -46,7 +46,6 @@ impl DownloadRequest {
     pub async fn download_playlist(self: &Self, cookies: Option<String>) {
         let mut counter = 1;
         for (video_id, video) in &self.missing_videos {
-            //Should we use the formatted title or just the regular one???
             let formatted_title = self.download_name.formatted_video_title(video, &self.playlist);
             let download_path = PathBuf::from(self.download_name.formatted_download_path(video, &self.playlist));
             info!("Downloading: {} | {} out of {}", formatted_title, counter, self.missing_videos.len());

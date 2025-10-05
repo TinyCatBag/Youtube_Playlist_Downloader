@@ -1,11 +1,11 @@
 use std::{collections::HashMap, path::{Path, PathBuf}, sync::Arc};
-use log::{debug, warn, trace, info};
+use log::{debug, trace, info};
 use reqwest::{Client, get};
 use std::{fs::create_dir, io::ErrorKind, vec};
 use serde_json::{from_str, Value};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Playlist {
     pub videos: Vec<Arc<Video>>,
     pub title: String,
@@ -13,7 +13,7 @@ pub struct Playlist {
     pub id: String,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug)]
 pub struct Video {
     pub title: String,
     // pub formatted_title: String,
@@ -23,13 +23,12 @@ pub struct Video {
 }
 
 impl Playlist {
-    pub async fn new(id: impl Into<String>, download_dir: PathBuf) -> Self{
+    pub async fn new(id: impl Into<String>, mut path: PathBuf) -> Self{
         let id: String = id.into();
         //TODO: Find a smart way to not request the entire value JUST for the title :3
         let value = Self::get_value(&id, None).await;
         trace!("Playlist value: {value}");
         let title = Self::get_title(&value);
-        let mut path = download_dir;
         path.push(&title);
         debug!("Playlist title: {title}, path: path");
 
@@ -37,7 +36,7 @@ impl Playlist {
             Ok(_) => {  info!("Succesfully created playlist directory: {}", &path.display()) },
             Err(err) => {
                 if err.kind() == ErrorKind::AlreadyExists {
-                    warn!("Playlist directory alread exists: {}", &path.display())
+                    info!("Playlist directory alread exists: {}", &path.display())
                 }
                 else {
                     panic!("Error with creating playlist directory: {}", err);
@@ -45,6 +44,25 @@ impl Playlist {
             },
         }
         
+        let videos = Self::get_videos(&id, None, &title, &path).await;
+        Self {
+            videos,
+            title,
+            path,
+            id,
+        }
+    }
+    //TODO!: This is dumb
+    /// This will crash if told to download from!
+    pub async fn new_no_directory(id: impl Into<String>, mut path: PathBuf) -> Self{
+        let id: String = id.into();
+        //TODO: Find a smart way to not request the entire value JUST for the title :3
+        let value = Self::get_value(&id, None).await;
+        trace!("Playlist value: {value}");
+        let title = Self::get_title(&value);
+        path.push(&title);
+        debug!("Playlist title: {title}, path: path");
+
         let videos = Self::get_videos(&id, None, &title, &path).await;
         Self {
             videos,
@@ -174,12 +192,19 @@ impl Playlist {
 
         return videos;
     }
-    pub fn make_playlist_hashmap(self: &Self) -> HashMap<String, Arc<Video>> {
+    pub fn make_playlist_hashmap_with_videos(self: &Self) -> HashMap<String, Arc<Video>> {
         debug!("Making playlist hashmap");
         let mut hashmap = HashMap::new();
         for video in &self.videos {
             hashmap.insert(video.id.clone(), video.clone());
             trace!("Video id: {}", video.id);
+        }
+        hashmap
+    }
+    pub fn make_playlist_hashmap_with_indexes(self: &Self) -> HashMap<String, usize> {
+        let mut hashmap = HashMap::new();
+        for i in 0..self.videos.len(){
+            hashmap.insert(self.videos[i].id.clone(), i);
         }
         hashmap
     }
