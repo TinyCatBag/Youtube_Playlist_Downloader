@@ -32,9 +32,10 @@ These are commands used for playlist stored as files on your PC.
 
 ---
 
-### Youtube_Playlist_Downloader local -c
+### Youtube_Playlist_Downloader local -c/--create *playlist_id*
 Create a local playlist, argument is a playlist ID  
-
+all options used with this such as -o/--output or -n/--name you can't
+change them after creating a playlist yet... :P
 E.g.  
 ```
     Youtube_Playlist_Downloader local -c PLH1TkRvPd30MSh23wIZTar8MUJ1w-XPB2
@@ -44,13 +45,13 @@ and put in a file called the same as the playlit's title.
 
 ---
 
-### Youtube_Playlist_Downloader local -t
+### Youtube_Playlist_Downloader local -t/--target *playlist_file*
 Read a playlist from a .json file that -c creates.  
 This option alone does nothing but is required for the ones below to function!  
 
 ---
 
-### Youtube_Playlist_Downloader local -a
+### Youtube_Playlist_Downloader local -t *playlist_file* -a/--add *playlist:playlist_id/video:video_id*
 Add videos or playlists to a local playlist  
 
 E.g.  
@@ -61,7 +62,7 @@ E.g.
 
 ---
 
-### Youtube_Playlist_Downloader local -r
+### Youtube_Playlist_Downloader local -t *playlist_file* -r/--remove *playlist:playlist_id/video:video_id*
 Remove videos or playlists from a local playlist  
 
 E.g.  
@@ -72,7 +73,7 @@ E.g.
 
 ---
 
-### Youtube_Playlist_Downloader local  -d
+### Youtube_Playlist_Downloader local -t *playlist_file* -d/--download
 This option downloads the playlist and requires -t to be used  
 
 E.g.  
@@ -83,7 +84,7 @@ Would download cool_playlist.
 
 ---
 
-### Youtube_Playlist_Downloader local -l
+### Youtube_Playlist_Downloader local -l/--list
 Lists Contents of a local playlist
 
 E.g.  
