@@ -45,6 +45,7 @@ enum TargetCommands {
     #[command(group(clap::ArgGroup::new("action").required(false).multiple(false)),
         group(clap::ArgGroup::new("target_group").required(true).multiple(false)))]
     #[command(verbatim_doc_comment)]
+    //TODO: add the option of doing it with multiple ids
     Local {
         // Already have a path argument
         /// Create a local playlist, argument is a playlist ID
@@ -108,10 +109,12 @@ async fn  main() {
         // So one action is needed create, add, remove, download or list
         // target is always required
         // Create and target are exclusive so in practice there can be create or everything else never both
+        //TODO: Allow user to change a playlists download directory after the making a local one
         TargetCommands::Local { create, target, add, remove, download, list } => {
             if create.is_some() {
                 let local_playlist = LocalPlaylist::new(create.unwrap(), args.name.as_deref(), args.output.clone()).await;
                 let title = local_playlist.playlist.title.clone();
+                debug!("--output: {:#?}", args.output);
                 local_playlist.into_file(&DownloadRequest::string_to_download_directory(args.output).join(title + ".json"));
                 return
             }
@@ -136,7 +139,7 @@ async fn  main() {
                 let download_dir = DownloadRequest::string_to_download_directory(args.output);
                 match add.unwrap() {
                     VideoOrPlaylist::Video(id) => todo!(),
-                    //TODO!: Add a new playlist generation, that will only get videos!
+                    //TODO: Add a new playlist generation, that will only get videos!
                     VideoOrPlaylist::Playlist(id) => local_playlist.add_playlist(Playlist::new(id, download_dir).await),
                 }
             }
@@ -144,7 +147,7 @@ async fn  main() {
                 let download_dir = DownloadRequest::string_to_download_directory(args.output);
                 match remove.unwrap() {
                     VideoOrPlaylist::Video(id) => todo!(),
-                    //TODO!: Add a new playlist generation, that will only get videos!
+                    //TODO: Add a new playlist generation, that will only get videos!
                     VideoOrPlaylist::Playlist(id) => local_playlist.remove_playlist(Playlist::new(id, download_dir).await),
                 }
             }

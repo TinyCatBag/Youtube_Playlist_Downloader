@@ -52,7 +52,7 @@ impl Playlist {
             id,
         }
     }
-    //TODO!: This is dumb
+    //TODO: This is dumb
     /// This will crash if told to download from!
     pub async fn new_no_directory(id: impl Into<String>, mut path: PathBuf) -> Self{
         let id: String = id.into();

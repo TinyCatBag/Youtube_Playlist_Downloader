@@ -153,7 +153,8 @@ impl DownloadRequest {
 
                     let path = inner_entry.path();
                     trace!("Inner entry path: {}", path.display());
-                    let tag = Tag::read_from_path(&path).unwrap();
+                    //TODO: Do it for the user maybe?
+                    let tag = Tag::read_from_path(&path).expect("Possibly corrupted file!, User intervention needed.");
 
                     //Gave info to the user 
                     //TODO: if i can figure out how to not have to panic here without just skipping it!
