@@ -71,6 +71,10 @@ enum TargetCommands {
         /// Lists all videos in a locally saved playlist.
         #[arg(short, long, group = "action", requires = "target")]
         list: bool,
+
+        /// Lists all videos in a locally saved playlist.
+        #[arg(short, long, group = "action", requires = "target")]
+        edit: bool,
     },
     /// Download playlists from youtube
     Remote{
@@ -110,7 +114,7 @@ async fn  main() {
         // target is always required
         // Create and target are exclusive so in practice there can be create or everything else never both
         //TODO: Allow user to change a playlists download directory and other options after the making a local one
-        TargetCommands::Local { create, target, add, remove, download, list } => {
+        TargetCommands::Local { create, target, add, remove, download, list, edit } => {
             if create.is_some() {
                 let local_playlist = LocalPlaylist::new(create.unwrap(), args.name.as_deref(), args.output.clone()).await;
                 let title = local_playlist.playlist.title.clone();
@@ -133,15 +137,7 @@ async fn  main() {
                 current_dir().unwrap().join(target)
             };
             
-            let mut local_playlist = LocalPlaylist::from_file(target);
-            match &args.output {
-                Some(output) => local_playlist.update_download_dir(output),
-                None => (),
-            }
-            match args.name {
-                Some(name) => local_playlist.update_download_name(&name),
-                None => ()
-            }
+            let mut local_playlist = LocalPlaylist::from_file(&target);
             if add.is_some() {
                 let download_dir = DownloadRequest::string_to_download_directory(args.output);
                 match add.unwrap() {
@@ -163,6 +159,17 @@ async fn  main() {
             }
             else if list {
                 local_playlist.list_playlist();
+            }
+            else if edit {
+                match &args.output {
+                    Some(output) => local_playlist.update_download_dir(output),
+                    None => (),
+                }
+                match args.name {
+                    Some(name) => local_playlist.update_download_name(&name),
+                    None => ()
+                }
+                local_playlist.into_file(&target);
             }
             else {
                 panic!("Null action, please report :)")
