@@ -113,7 +113,6 @@ async fn  main() {
         // So one action is needed create, add, remove, download or list
         // target is always required
         // Create and target are exclusive so in practice there can be create or everything else never both
-        //TODO: Allow user to change a playlists download directory and other options after the making a local one
         TargetCommands::Local { create, target, add, remove, download, list, edit } => {
             if create.is_some() {
                 let local_playlist = LocalPlaylist::new(create.unwrap(), args.name.as_deref(), args.output.clone()).await;

@@ -92,6 +92,8 @@ E.g.
     Youtube_Playlist_Downloader local -t cool_playlist.json -l
 ```
 
+---
+
 ### Youtube_Playlist_Downloader -o/--output *output directory* -n/--name *custom name* local -e/--edit
 Edits the properties of a local playlist like the output directory and custom name.
 
