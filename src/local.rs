@@ -122,6 +122,15 @@ impl LocalPlaylist {
             removed_vidoes,
         }
     }
+    pub fn update_download_dir(self: &mut Self, download_dir: &String) {
+        let download_dir = DownloadRequest::string_to_download_directory(Some(download_dir.to_string()));
+        self.playlist.path = download_dir.clone();
+        self.download_dir = download_dir;
+    }
+    pub fn update_download_name(self: &mut Self, download_name: &String) {
+        self.download_name = NameWhole::from_string(&Some(download_name));
+    }
+
 }
 
 #[cfg(test)]

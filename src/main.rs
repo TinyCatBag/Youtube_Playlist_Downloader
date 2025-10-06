@@ -42,14 +42,14 @@ struct Args {
 enum TargetCommands {
     /// Allows you to make and edit your playlists localy without having to go through youtube,
     /// it will not reflect on the actual playlist in the cloud yet!!!
-    #[command(group(clap::ArgGroup::new("action").required(false).multiple(false)),
+    #[command(group(clap::ArgGroup::new("action").required(true).multiple(false)),
         group(clap::ArgGroup::new("target_group").required(true).multiple(false)))]
     #[command(verbatim_doc_comment)]
     //TODO: add the option of doing it with multiple ids
     Local {
         // Already have a path argument
         /// Create a local playlist, argument is a playlist ID
-        #[arg(short, long, group = "target_group")]
+        #[arg(short, long, group = "target_group", group = "action")]
         create: Option<String>,
 
         /// Path to playlist that you want to interact with.
@@ -109,7 +109,7 @@ async fn  main() {
         // So one action is needed create, add, remove, download or list
         // target is always required
         // Create and target are exclusive so in practice there can be create or everything else never both
-        //TODO: Allow user to change a playlists download directory after the making a local one
+        //TODO: Allow user to change a playlists download directory and other options after the making a local one
         TargetCommands::Local { create, target, add, remove, download, list } => {
             if create.is_some() {
                 let local_playlist = LocalPlaylist::new(create.unwrap(), args.name.as_deref(), args.output.clone()).await;
@@ -123,7 +123,6 @@ async fn  main() {
             if target.is_empty() {
                 panic!("Target argument is empty!")
             }
-            
             let target = if target.chars().nth(0).unwrap() == '~' {
                 home_dir().unwrap().join(target)
             }
@@ -135,6 +134,14 @@ async fn  main() {
             };
             
             let mut local_playlist = LocalPlaylist::from_file(target);
+            match &args.output {
+                Some(output) => local_playlist.update_download_dir(output),
+                None => (),
+            }
+            match args.name {
+                Some(name) => local_playlist.update_download_name(&name),
+                None => ()
+            }
             if add.is_some() {
                 let download_dir = DownloadRequest::string_to_download_directory(args.output);
                 match add.unwrap() {
