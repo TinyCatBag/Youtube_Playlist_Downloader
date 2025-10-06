@@ -97,7 +97,7 @@ Edits the properties of a local playlist like the output directory and custom na
 
 E.g.  
 ```
-    Youtube_Playlist_Downloader -o/--output LifeIsGreat -n/--name BestPlaylist-{VideoTitle} local -e
+    Youtube_Playlist_Downloader -o/--output LifeIsGreat -n/--name BestPlaylist-{VideoTitle} local -t playlist.json -e
     Youtube_Playlist_Downloader -n/--name BestPlaylist-{VideoTitle} local -e
     Youtube_Playlist_Downloader -o/--output LifeIsGreat local -e
 
