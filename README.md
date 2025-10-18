@@ -1,7 +1,7 @@
 # Youtube_Playlist_Downloader
 Downloads all videos in a playlist/s as opus files.  
 Files are downloaded into a directory with the title of the playlist.  
-FFMPEG is required for it to work!  
+FFMPEG, yt-dp and mutagen is required for it to work!  
 
 ---
 
